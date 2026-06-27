@@ -1,0 +1,227 @@
+# =============================================================
+# QMAML — Quantum Model-Agnostic Meta-Learning
+# Configuration File
+# =============================================================
+experiment_name: "qmaml_v1"
+output_dir: "./results"
+device: "auto"
+
+# =============================================================
+# RANDOM SEEDS
+# =============================================================
+seeds: [0, 42, 123]
+
+# =============================================================
+# META-LEARNING CONFIGURATION
+# =============================================================
+meta:
+  n_way: 5          # Number of classes per task
+  k_shot: [1, 5]    # Support set sizes to evaluate
+  n_query: 15       # Query examples per class
+  n_meta_train: 2000
+  n_meta_test: 600
+  meta_batch_size: 4
+  inner_lr: 0.05
+  outer_lr: 0.001
+  inner_steps: 5
+
+# =============================================================
+# DATASETS
+# =============================================================
+datasets:
+  - name: "omniglot"
+    root: "./data/datasets"
+    n_tasks: 5
+    image_size: 28
+    download: true
+    data_type: "image"
+    
+  - name: "sine_regression"
+    root: "./data/datasets"
+    n_tasks: 5
+    data_type: "regression"
+    description: "Sinusoidal regression tasks (amplitude, phase variations)"
+    n_samples: 100
+    amplitude_range: [0.1, 5.0]
+    phase_range: [0, 3.14159]
+    
+  - name: "tabular_classification"
+    root: "./data/datasets"
+    n_tasks: 5
+    data_type: "tabular"
+    description: "Synthetic tabular classification (Gaussian mixtures)"
+    n_samples: 500
+    n_features: 10
+    n_classes: 5
+    
+  - name: "iris"
+    root: "./data/datasets"
+    n_tasks: 3
+    data_type: "tabular"
+    source: "sklearn"
+    description: "Iris flower dataset (4 features, 3 classes)"
+    n_features: 4
+    n_classes: 3
+    n_samples: 150
+    
+  - name: "breast_cancer"
+    root: "./data/datasets"
+    n_tasks: 2
+    data_type: "tabular"
+    source: "sklearn"
+    description: "Breast Cancer Wisconsin (30 features, 2 classes)"
+    n_features: 30
+    n_classes: 2
+    n_samples: 569
+    
+  - name: "wine"
+    root: "./data/datasets"
+    n_tasks: 3
+    data_type: "tabular"
+    source: "sklearn"
+    description: "Wine quality dataset (11 features, 3 classes)"
+    n_features: 11
+    n_classes: 3
+    n_samples: 178
+    
+  - name: "digits"
+    root: "./data/datasets"
+    n_tasks: 10
+    data_type: "tabular"
+    source: "sklearn"
+    description: "Digits dataset (8x8 images, 10 classes)"
+    n_features: 64
+    n_classes: 10
+    n_samples: 1797
+    
+  - name: "time_series"
+    root: "./data/datasets"
+    n_tasks: 5
+    data_type: "time_series"
+    description: "Synthetic time series forecasting"
+    seq_length: 50
+    n_features: 5
+    n_samples: 1000
+
+# =============================================================
+# ARCHITECTURES
+# =============================================================
+architectures:
+  # --- Classical baseline ---
+  - name: "classical_maml"
+    type: "classical"
+    description: "Classical MAML baseline"
+    encoder:
+      input_dim: 30  # Breast Cancer features
+      hidden_dims: [256, 128, 64]
+      output_dim: 2  # Binary classification
+    inner_loop: "sgd"
+
+  - name: "qmaml_euclidean"
+    type: "quantum"
+    description: "QMAML with Euclidean gradient in inner loop"
+    encoder:
+      input_dim: 30  # Breast Cancer features
+      hidden_dim: 64
+      output_dim: 6
+      activation: "tanh"
+    vqc:
+      n_qubits: 6
+      n_shared_layers: 2
+      n_task_layers: 1
+      ansatz: "EfficientSU2"
+      backend: "qiskit"
+      diff_method: "param_shift"
+    classifier:
+      input_dim: 6
+      output_dim: 2  # Binary classification
+    inner_loop: "euclidean"
+
+  - name: "qmaml_qng"
+    type: "quantum"
+    description: "QMAML with Quantum Natural Gradient in inner loop"
+    encoder:
+      input_dim: 30  # Breast Cancer features
+      hidden_dim: 64
+      output_dim: 6
+      activation: "tanh"
+    vqc:
+      n_qubits: 6
+      n_shared_layers: 2
+      n_task_layers: 1
+      ansatz: "EfficientSU2"
+      backend: "qiskit"
+      diff_method: "param_shift"
+    classifier:
+      input_dim: 6
+      output_dim: 2  # Binary classification
+    inner_loop: "qng"
+
+# =============================================================
+# NOISE STUDY (Optional)
+# =============================================================
+noise_study:
+  enabled: true
+  noise_types:
+    - "depolarizing"
+  noise_levels: [0.0, 0.001, 0.005, 0.01, 0.02]
+  backends:
+    - "simulator"
+    - "ibm_kyiv"
+
+# =============================================================
+# QFIM ANALYSIS
+# =============================================================
+qfim:
+  enabled: true
+  compute_spectrum: true
+  compare_hardware: true
+  hardware_backend: "ibm_kyiv"
+
+# =============================================================
+# SPSA CONFIGURATION
+# =============================================================
+spsa:
+  enabled: true
+  epsilon: 0.1  # Perturbation size for SPSA gradient
+  max_iter: 100  # Max SPSA iterations (if used standalone)
+
+# =============================================================
+# TRAINING
+# =============================================================
+training:
+  epochs: 2000
+  eval_interval: 100
+  save_interval: 500
+  first_order: false  # Use second-order MAML
+  gradient_clip: 1.0
+
+# =============================================================
+# HARDWARE
+# =============================================================
+hardware:
+  use_gpu: false
+  n_workers: 4
+  slurm_partition: "standard"
+  slurm_time: "24:00:00"
+  slurm_mem: "16G"
+  
+  # Backend type: "simulator", "ibm"
+  backend_type: "simulator"
+  
+  # For IBM hardware, specify backend name
+  # Options: "ibm_fez", "ibm_marrakesh", "ibm_kingston" (156 qubits each)
+  backend_name: "ibm_fez"
+  
+  # IBM Quantum credentials (set via environment variables)
+  # IBMQ_TOKEN: your-api-token
+  # IBMQ_INSTANCE: your-hub/group/project
+  slurm_cpus: 4
+
+# =============================================================
+# LOGGING
+# =============================================================
+logging:
+  level: "INFO"
+  log_to_file: true
+  log_dir: "./logs"

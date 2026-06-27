@@ -1,0 +1,18 @@
+{
+  "run_id": "test_runner_qng",
+  "architecture": "qmaml_qng",
+  "k_shot": 5,
+  "seed": 42,
+  "final_accuracy": 0.22933333218097687,
+  "convergence_epoch": 2,
+  "train_losses": [
+    1.648589849472046,
+    1.6311900615692139
+  ],
+  "train_accuracies": [
+    0.20000000298023224,
+    0.20000000298023224
+  ],
+  "eval_accuracies": [],
+  "status": "completed"
+}

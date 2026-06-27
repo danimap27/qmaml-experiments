@@ -1,0 +1,9 @@
+{
+  "run_id": "test_qmaml_qng_k5_s42",
+  "architecture": "qmaml_qng",
+  "k_shot": 5,
+  "seed": 42,
+  "final_accuracy": 0.0,
+  "convergence_epoch": 0,
+  "status": "completed"
+}

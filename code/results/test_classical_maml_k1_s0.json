@@ -1,0 +1,9 @@
+{
+  "run_id": "test_classical_maml_k1_s0",
+  "architecture": "classical_maml",
+  "k_shot": 1,
+  "seed": 0,
+  "final_accuracy": 0.0,
+  "convergence_epoch": 0,
+  "status": "completed"
+}
