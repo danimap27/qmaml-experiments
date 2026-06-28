@@ -27,8 +27,37 @@ from runner import RunConfig, load_config
 # Configuration
 CHECKPOINT_DIR = "./checkpoints"
 RESULTS_DIR = "./results"
-IBM_BACKEND = "ibm_fez"
 CHECKPOINT_INTERVAL = 5  # Save checkpoint every N episodes
+
+# Get mode from environment
+MODE = os.environ.get('QMAML_MODE', 'ideal')  # ideal, heron_r2, real
+IBM_BACKEND = os.environ.get('IBM_BACKEND', 'ibm_fez')
+
+# Mode-specific settings
+if MODE == 'ideal':
+    BACKEND_TYPE = 'simulator'
+    NOISE_LEVEL = 0.0
+    USE_SPSA = False
+    print("="*70)
+    print("MODE: IDEAL SIMULATOR (no noise)")
+    print("="*70)
+elif MODE == 'heron_r2':
+    BACKEND_TYPE = 'simulator'
+    NOISE_LEVEL = 0.01  # Heron R2 noise level
+    USE_SPSA = True
+    print("="*70)
+    print("MODE: HERON R2 NOISE MODEL")
+    print("="*70)
+elif MODE == 'real':
+    BACKEND_TYPE = 'ibm'
+    NOISE_LEVEL = 0.0
+    USE_SPSA = True
+    print("="*70)
+    print("MODE: REAL IBM QUANTUM HARDWARE")
+    print("="*70)
+    print(f"Backend: {IBM_BACKEND}")
+else:
+    raise ValueError(f"Unknown mode: {MODE}. Use: ideal, heron_r2, real")
 
 # Experiment configurations from paper - using Breast Cancer dataset
 EXPERIMENTS = [
@@ -98,13 +127,21 @@ def run_experiment(exp_config, base_config, checkpoint=None):
     print(f"{'='*70}")
     
     # Configure for IBM hardware with Breast Cancer dataset
+    # Configure based on mode
     config = base_config.copy()
     config["meta"]["n_meta_train"] = 2000
     config["meta"]["inner_steps"] = 5
     config["meta"]["k_shot"] = k_shot
     config["meta"]["n_way"] = 2  # Binary classification (malignant/benign)
-    config["hardware"]["backend_type"] = "ibm"
-    config["hardware"]["backend_name"] = IBM_BACKEND
+    config["hardware"]["backend_type"] = BACKEND_TYPE
+    config["hardware"]["backend_name"] = IBM_BACKEND if BACKEND_TYPE == 'ibm' else 'aer_simulator'
+    
+    # Set noise level for Heron R2
+    if MODE == 'heron_r2':
+        config['noise'] = {'depolarizing': [NOISE_LEVEL]}
+    
+    # Set SPSA usage
+    config['spsa'] = {'enabled': USE_SPSA, 'epsilon': 0.1}
     
     # Use Breast Cancer dataset
     config["datasets"] = [{
