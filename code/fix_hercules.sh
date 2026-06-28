@@ -1,66 +1,63 @@
 #!/bin/bash
 # fix_hercules.sh — Fix Qiskit compatibility issues on Hercules
+# Creates a completely fresh conda environment
 
 set -e
 
 echo "=== QMAML Hercules Fix ==="
 
-# Find Python 3.9+ or use conda
-PYTHON=""
-for PY in python3.12 python3.11 python3.10 python3.9; do
-    if command -v $PY &> /dev/null; then
-        VER=$($PY --version 2>&1 | awk '{print $2}')
-        MAJOR=$(echo $VER | cut -d. -f1)
-        MINOR=$(echo $VER | cut -d. -f2)
-        if [ "$MAJOR" -eq 3 ] && [ "$MINOR" -ge 9 ]; then
-            PYTHON=$PY
-            echo "Found compatible Python: $PY ($VER)"
-            break
-        fi
-    fi
-done
+# Remove old environment completely
+echo "Removing old qmaml environment..."
+conda deactivate 2>/dev/null || true
+conda env remove -n qmaml -y 2>/dev/null || true
 
-if [ -z "$PYTHON" ]; then
-    echo "No Python 3.9+ found. Trying conda..."
-    if command -v conda &> /dev/null; then
-        eval "$(conda shell.bash hook)" 2>/dev/null || true
-        if [ -f "$(conda info --base 2>/dev/null)/etc/profile.d/conda.sh" ]; then
-            source "$(conda info --base)/etc/profile.d/conda.sh"
-        fi
-        conda activate qmaml 2>/dev/null || conda create -n qmaml python=3.10 -y
-        conda activate qmaml
-        PYTHON=python
-        echo "Using conda environment 'qmaml'"
-    else
-        echo "ERROR: No Python 3.9+ and no conda available"
-        exit 1
-    fi
-fi
+# Create fresh environment with Python 3.10
+echo "Creating fresh conda environment 'qmaml' with Python 3.10..."
+conda create -n qmaml python=3.10 -y
 
-echo "Python: $($PYTHON --version)"
+# Activate
+echo "Activating environment..."
+conda activate qmaml
 
-# Uninstall conflicting versions
-echo "Removing old Qiskit versions..."
-pip uninstall -y qiskit qiskit-machine-learning qiskit-aer qiskit-ibm-runtime 2>/dev/null || true
+echo "Python: $(python --version)"
 
-# Install compatible versions
-echo "Installing compatible Qiskit versions..."
+# Install everything in correct order
+echo "Installing dependencies..."
 pip install --upgrade pip
+
+# PyTorch first
 pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Qiskit 0.46 (old stable) and compatible packages
 pip install qiskit==0.46.0
 pip install qiskit-machine-learning==0.7.2
 pip install qiskit-aer
-pip install qiskit-ibm-runtime
-pip install pyyaml numpy scikit-learn
 
+# DO NOT install qiskit-ibm-runtime with qiskit 0.46
+# They conflict. IBM runtime requires qiskit >=1.0
+
+# Other dependencies
+pip install pyyaml numpy scikit-learn matplotlib seaborn scipy pandas
+
+echo ""
 echo "Verifying installation..."
-$PYTHON -c "
+python -c "
 import qiskit
 print(f'Qiskit: {qiskit.__version__}')
 from qiskit_machine_learning.neural_networks import EstimatorQNN
 print('EstimatorQNN: OK')
 from qiskit.primitives import Estimator
 print('Estimator: OK')
+import torch
+print(f'PyTorch: {torch.__version__}')
+print('')
+print('NOTE: IBM Quantum hardware not available with qiskit 0.46')
+print('Simulator mode will be used automatically')
 "
 
+echo ""
 echo "=== Fix complete ==="
+echo ""
+echo "To use:"
+echo "  conda activate qmaml"
+echo "  python run_qmaml_ibm.py"
