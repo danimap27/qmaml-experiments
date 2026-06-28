@@ -1,8 +1,9 @@
 torch>=2.0.0
 torchvision>=0.15.0
-qiskit>=1.0.0
-qiskit-machine-learning>=0.7.0
-qiskit-algorithms>=0.3.0
+qiskit==0.46.0
+qiskit-machine-learning==0.7.2
+qiskit-aer
+qiskit-ibm-runtime>=0.25.0
 numpy>=1.24.0
 pandas>=2.0.0
 pyyaml>=6.0

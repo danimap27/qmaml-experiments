@@ -47,7 +47,11 @@ if command -v conda &> /dev/null; then
     echo "Installing dependencies..."
     pip install --upgrade pip
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    pip install qiskit qiskit-machine-learning qiskit-algorithms
+    # Install compatible Qiskit versions
+    pip install qiskit==0.46.0
+    pip install qiskit-machine-learning==0.7.2
+    pip install qiskit-aer
+    pip install qiskit-ibm-runtime
     pip install numpy pandas pyyaml matplotlib seaborn scipy scikit-learn
     
 else

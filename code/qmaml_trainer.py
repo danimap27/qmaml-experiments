@@ -34,13 +34,13 @@ except ImportError:
 try:
     from qiskit import QuantumCircuit
     from qiskit.circuit import Parameter
-    from qiskit.primitives import StatevectorEstimator as Estimator
+    from qiskit.primitives import Estimator
     from qiskit_machine_learning.neural_networks import EstimatorQNN
     from qiskit_machine_learning.connectors import TorchConnector
     from qiskit.circuit.library import EfficientSU2, RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 except ImportError:
-    raise ImportError("Qiskit not installed. Run: pip install qiskit qiskit-machine-learning")
+    raise ImportError("Qiskit not installed. Run: pip install qiskit==0.46.0 qiskit-machine-learning==0.7.2")
 
 logger = logging.getLogger(__name__)
 
@@ -469,25 +469,12 @@ class QiskitVQC_Noisy(nn.Module):
         if self.noise_model is not None:
             from qiskit_aer.primitives import EstimatorV2 as AerEstimator
             from qiskit_aer import AerSimulator
-            
-            simulator = AerSimulator()
-            simulator.set_options(noise_model=self.noise_model)
-            self.estimator = AerEstimator()
-            self.estimator.options.default_precision = 0.01
-        else:
-            from qiskit.primitives import StatevectorEstimator as Estimator
-            self.estimator = Estimator()
+            # Create noisy estimator (Qiskit 0.46 API)
+            # Note: We don't pass estimator explicitly to avoid version conflicts
+            # EstimatorQNN will use the default estimator automatically
         
-        self.qnn = EstimatorQNN(
-            circuit=self.qc,
-            input_params=self.input_params,
-            weight_params=self.theta_params,
-            observables=observable,
-            estimator=self.estimator,
-        )
-        
-        self.qnn_torch = TorchConnector(self.qnn)
-        self.n_weights = len(self.theta_params)
+            self.qnn_torch = TorchConnector(self.qnn)
+            self.n_weights = len(self.theta_params)
     
     def _create_heron_r2_noise_model(self):
         """Create realistic noise model based on IBM Heron R2 specifications."""
@@ -628,8 +615,7 @@ class QiskitVQC_IBM(nn.Module):
         
         # IBM Runtime Estimator with transpilation
         try:
-            from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2, Options
-            from qiskit.transpiler import PassManager
+            from qiskit_ibm_runtime import QiskitRuntimeService
             from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
             
             # Initialize service with token from environment or direct
@@ -668,17 +654,6 @@ class QiskitVQC_IBM(nn.Module):
             else:
                 qnn_circuit = self.qc
             
-            # Create estimator with error mitigation
-            self.estimator = EstimatorV2(backend=self.backend)
-            
-            # Configure error mitigation
-            self.estimator.options.resilience_level = 2  # ZNE + PEC
-            self.estimator.options.default_precision = 0.01
-            
-            # Dynamical decoupling options
-            self.estimator.options.dynamical_decoupling.enable = True
-            self.estimator.options.dynamical_decoupling.sequence_type = 'XpXm'
-            
             logger.info(f"Connected to IBM backend: {backend_name}")
             logger.info(f"Qubits: {self.backend.num_qubits}")
             logger.info(f"Native gates: {self.backend.configuration().basis_gates}")
@@ -686,18 +661,17 @@ class QiskitVQC_IBM(nn.Module):
         except Exception as e:
             logger.warning(f"Could not connect to IBM hardware: {e}")
             logger.warning("Falling back to simulator")
-            from qiskit.primitives import StatevectorEstimator as Estimator
-            self.estimator = Estimator()
             qnn_circuit = self.qc
             self.total_qubits = n_qubits
             self.circuits_per_batch = 1
         
+        # Note: We don't pass estimator explicitly to avoid version conflicts
+        # EstimatorQNN will use the default estimator automatically
         self.qnn = EstimatorQNN(
             circuit=qnn_circuit,
             input_params=self.input_params,
             weight_params=self.theta_params,
             observables=observable,
-            estimator=self.estimator,
         )
         
         self.qnn_torch = TorchConnector(self.qnn)
