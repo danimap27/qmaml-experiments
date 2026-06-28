@@ -43,16 +43,15 @@ if command -v conda &> /dev/null; then
     source $(conda info --base)/etc/profile.d/conda.sh
     conda activate qmaml
     
-    # Install dependencies
+    # Install dependencies (same versions as QTCL)
     echo "Installing dependencies..."
     pip install --upgrade pip
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    # Install compatible Qiskit versions
-    pip install qiskit==0.46.0
-    pip install qiskit-machine-learning==0.7.2
-    pip install qiskit-aer
-    pip install qiskit-ibm-runtime
-    pip install numpy pandas pyyaml matplotlib seaborn scipy scikit-learn
+    pip install qiskit>=1.2.0
+    pip install qiskit-machine-learning>=0.8.0
+    pip install qiskit-aer>=0.15.0
+    pip install qiskit-algorithms>=0.3.0
+    pip install numpy scikit-learn scipy pandas pyyaml tqdm matplotlib seaborn codecarbon
     
 else
     echo "Conda not found, using venv..."

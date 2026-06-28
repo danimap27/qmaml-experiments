@@ -1,6 +1,6 @@
 #!/bin/bash
 # fix_hercules.sh — Fix Qiskit compatibility issues on Hercules
-# WARNING: This completely removes and recreates the conda environment
+# Uses SAME versions as QTCL project
 
 set -e
 
@@ -11,7 +11,7 @@ echo "Step 1: Removing old qmaml environment..."
 conda deactivate 2>/dev/null || true
 conda env remove -n qmaml -y 2>/dev/null || true
 
-# Step 2: Clean conda cache to avoid stale packages
+# Step 2: Clean conda cache
 echo "Step 2: Cleaning conda cache..."
 conda clean --all -y 2>/dev/null || true
 
@@ -33,19 +33,22 @@ pip uninstall -y qiskit qiskit-terra qiskit-aer qiskit-ibm-runtime qiskit-machin
 echo "Step 6: Upgrading pip..."
 pip install --upgrade pip
 
-# Step 7: Install PyTorch first (separately to avoid conflicts)
+# Step 7: Install PyTorch first
 echo "Step 7: Installing PyTorch..."
-pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# Step 8: Install Qiskit 0.46 and compatible packages ONLY
-echo "Step 8: Installing Qiskit 0.46 and compatible packages..."
-pip install qiskit==0.46.0
-pip install qiskit-machine-learning==0.7.2
-pip install qiskit-aer
+# Step 8: Install Qiskit SAME versions as QTCL
+echo "Step 8: Installing Qiskit (same versions as QTCL)..."
+pip install qiskit>=1.2.0
+pip install qiskit-machine-learning>=0.8.0
+pip install qiskit-aer>=0.15.0
+pip install qiskit-algorithms>=0.3.0
+pip install qiskit-ibm-runtime
 
-# Step 9: Install other dependencies (NO qiskit-ibm-runtime!)
+# Step 9: Install other dependencies (same as QTCL)
 echo "Step 9: Installing other dependencies..."
-pip install pyyaml numpy scikit-learn matplotlib seaborn scipy pandas
+pip install numpy>=1.26.0 scikit-learn>=1.4.0 scipy>=1.11.0 pandas>=2.2.0
+pip install pyyaml>=6.0 tqdm>=4.66.0 matplotlib>=3.8.0 seaborn>=0.13.0 codecarbon>=2.4.0
 
 # Step 10: Verify
 echo ""
@@ -55,15 +58,12 @@ import qiskit
 print(f'Qiskit: {qiskit.__version__}')
 from qiskit_machine_learning.neural_networks import EstimatorQNN
 print('EstimatorQNN: OK')
-from qiskit.primitives import Estimator
-print('Estimator: OK')
+from qiskit.primitives import StatevectorEstimator
+print('StatevectorEstimator: OK')
 import torch
 print(f'PyTorch: {torch.__version__}')
 print('')
 print('✅ All packages installed correctly!')
-print('')
-print('NOTE: IBM Quantum hardware not available with qiskit 0.46')
-print('Simulator mode will be used automatically')
 "
 
 echo ""
